@@ -10,7 +10,6 @@
     <ClInclude Include="mem.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="lazy_importer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">

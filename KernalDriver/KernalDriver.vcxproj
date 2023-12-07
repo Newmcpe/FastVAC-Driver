@@ -133,7 +133,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imports.h" />
-    <ClInclude Include="lazy_importer.hpp" />
     <ClInclude Include="mem.h" />
   </ItemGroup>
   <ItemGroup>
