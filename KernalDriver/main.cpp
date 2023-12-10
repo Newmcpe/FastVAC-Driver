@@ -1,27 +1,30 @@
+
 #include "mem.h"
 #include "imports.h"
+#include "skCrypter.h"
 
 #define RVA(addr, size)			((PBYTE)(addr + *(DWORD*)(addr + ((size) - 4)) + size))
 
 typedef INT64(__fastcall* fQword)(PVOID);
 fQword original_qword;
 
+#define PROCESS_NAME skCrypt(R"(cs2.exe)")
+
 auto readvm(PINFORMATION in) -> bool
 {
-	Printf("Read opertaion\n");
+	//	Printf("Read opertaion\n");
 	PEPROCESS source_process;
-	NTSTATUS status = mem::FindProcessByName(R"(cs2.exe)", &source_process);
+	NTSTATUS status = mem::FindProcessByName(PROCESS_NAME, &source_process);
 	if (status != STATUS_SUCCESS)
 	{
-
-		Printf("status != STATUS_SUCCESS");
+		//	Printf("status != STATUS_SUCCESS");
 		return false;
 	}
 	size_t memsize = 0;
 
 	if (!NT_SUCCESS(
-		mem::readprocessmemory(source_process, (void*)in->src_addr, (void*)in->dst_addr, in->size, &memsize))) {
-		Printf("read failed");
+		mem::readprocessmemory(source_process, reinterpret_cast<void*>(in->src_addr), reinterpret_cast<void*>(in->dst_addr), in->size, &memsize))) {
+		//	Printf("read failed");
 		return false;
 	}
 
@@ -33,20 +36,18 @@ auto readvm(PINFORMATION in) -> bool
 ULONG64 get_client_address(PINFORMATION in)
 {
 	PEPROCESS source_process = NULL;
-	NTSTATUS status = mem::FindProcessByName(R"(cs2.exe)", &source_process);
+	NTSTATUS status = mem::FindProcessByName(PROCESS_NAME, &source_process);
 	if (status != STATUS_SUCCESS) return 0;
-	UNICODE_STRING moduleName;
-	RtlInitUnicodeString(&moduleName, L"client.dll");
-	ULONG64 base_address = mem::GetModuleBasex64(source_process, moduleName, false);
+
+	uint64_t base_address;
+	size_t memsize = 0;
+	mem::get_module_base(source_process, PROCESS_NAME, &base_address, memsize);
 	return base_address;
 }
 
 INT64 __fastcall NtUserGetPointerProprietaryId_hk(PVOID a1)
 {
-	Printf("Hook called, a1: 0x%llx\n", a1);
-
 	PINFORMATION information = static_cast<PINFORMATION>(a1);
-	Printf("Operation = %x\n", information->operation);
 
 	switch (information->operation)
 	{
@@ -69,36 +70,36 @@ extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING Regist
 	UNREFERENCED_PARAMETER(DriverObj);
 	UNREFERENCED_PARAMETER(RegistryPath);
 
-	Printf("Driver Loaded!\n");
+	//	Printf("Driver Loaded!\n");
 
 	PEPROCESS gui_process;
 	mem::FindProcessByName(R"(explorer.exe)", &gui_process);
 	if (!gui_process)
 	{
-		Printf("Gui process not found\n");
+		//	Printf("Gui process not found\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}
 	KeAttachProcess(gui_process);
 
-	auto win32k = mem::get_kernel_module(R"(\SystemRoot\System32\win32k.sys)");
+	auto win32k = mem::get_kernel_module(skCrypt(R"(\SystemRoot\System32\win32k.sys)"));
 	if (!win32k)
 	{
-		Printf("win32kbase not found\n");
+		//Printf("win32kbase not found\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}
 
-	Printf("win32kbase: 0x%p\n", win32k);
+	//Printf("win32kbase: 0x%p\n", win32k);
 
 	uintptr_t dataPtr = win32k + 0xEC38;
 	dataPtr = reinterpret_cast<uintptr_t>(RVA(dataPtr, 7));
 
 	if (!dataPtr)
 	{
-		Printf("Error! NtUserGetPointerProprietaryId not found!\n");
+		//Printf("Error! NtUserGetPointerProprietaryId not found!\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}
 
-	Printf("dataPtr: 0x%x\n", dataPtr);
+	//	Printf("dataPtr: 0x%x\n", dataPtr);
 
 	original_qword = reinterpret_cast<fQword>(InterlockedExchangePointer(reinterpret_cast<PVOID*>(dataPtr),
 		reinterpret_cast<PVOID>(
@@ -107,6 +108,6 @@ extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING Regist
 	KeDetachProcess();
 	ObDereferenceObject(gui_process);
 
-	Printf("HOOKED\n");
+	//	Printf("HOOKED\n");
 	return STATUS_SUCCESS;
 }

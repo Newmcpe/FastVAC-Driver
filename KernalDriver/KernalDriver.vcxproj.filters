@@ -10,6 +10,9 @@
     <ClInclude Include="mem.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="skCrypter.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
@@ -18,10 +21,5 @@
   </ItemGroup>
   <ItemGroup>
     <Inf Include="KernalDriver.inf" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="crap.txt">
-      <Filter>Headers</Filter>
-    </Text>
   </ItemGroup>
 </Project>
