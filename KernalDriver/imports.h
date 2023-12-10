@@ -80,6 +80,19 @@ typedef struct _INFORMATION
 	ULONG64 client_base;
 } INFORMATION, * PINFORMATION;
 
+
+//0x20 bytes (sizeof)
+typedef struct _POOL_TRACKER_BIG_PAGES
+{
+	volatile ULONGLONG Va;                                                  //0x0
+	ULONG Key;                                                              //0x8
+	ULONG Pattern : 8;                                                        //0xc
+	ULONG PoolType : 12;                                                      //0xc
+	ULONG SlushSize : 12;                                                     //0xc
+	ULONGLONG NumberOfBytes;                                                //0x10
+	struct _EPROCESS* ProcessBilled;                                        //0x18
+} POOL_TRACKER_BIG_PAGES, * PPOOL_TRACKER_BIG_PAGES;
+
 extern "C" {
 	NTSTATUS ZwQuerySystemInformation(ULONG InfoClass, PVOID Buffer, ULONG Length, PULONG ReturnLength);
 	__declspec(dllimport) PPEB PsGetProcessPeb(PEPROCESS);

@@ -1,6 +1,6 @@
 
 #include "mem.h"
-#include "imports.h"
+#include "CallStack-Spoofer.h"
 #include "skCrypter.h"
 
 #define RVA(addr, size)			((PBYTE)(addr + *(DWORD*)(addr + ((size) - 4)) + size))
@@ -12,7 +12,7 @@ fQword original_qword;
 
 auto readvm(PINFORMATION in) -> bool
 {
-	//	Printf("Read opertaion\n");
+	SPOOF_FUNC;
 	PEPROCESS source_process;
 	NTSTATUS status = mem::FindProcessByName(PROCESS_NAME, &source_process);
 	if (status != STATUS_SUCCESS)
@@ -35,6 +35,7 @@ auto readvm(PINFORMATION in) -> bool
 
 ULONG64 get_client_address(PINFORMATION in)
 {
+	SPOOF_FUNC;
 	PEPROCESS source_process = NULL;
 	NTSTATUS status = mem::FindProcessByName(PROCESS_NAME, &source_process);
 	if (status != STATUS_SUCCESS) return 0;
@@ -47,6 +48,7 @@ ULONG64 get_client_address(PINFORMATION in)
 
 INT64 __fastcall NtUserGetPointerProprietaryId_hk(PVOID a1)
 {
+	SPOOF_FUNC
 	PINFORMATION information = static_cast<PINFORMATION>(a1);
 
 	switch (information->operation)
@@ -65,12 +67,13 @@ INT64 __fastcall NtUserGetPointerProprietaryId_hk(PVOID a1)
 	return 0;
 }
 
+
 extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(DriverObj);
 	UNREFERENCED_PARAMETER(RegistryPath);
 
-	//	Printf("Driver Loaded!\n");
+	Printf("Driver Loaded? %x\n", DriverObj);
 
 	PEPROCESS gui_process;
 	mem::FindProcessByName(R"(explorer.exe)", &gui_process);
@@ -108,6 +111,7 @@ extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING Regist
 	KeDetachProcess();
 	ObDereferenceObject(gui_process);
 
-	//	Printf("HOOKED\n");
+
+
 	return STATUS_SUCCESS;
 }

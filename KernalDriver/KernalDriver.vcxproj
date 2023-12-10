@@ -132,12 +132,16 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CallStack-Spoofer.h" />
+    <ClInclude Include="cleaning.h" />
     <ClInclude Include="imports.h" />
     <ClInclude Include="mem.h" />
     <ClInclude Include="skCrypter.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cleaning.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
