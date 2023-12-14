@@ -7,22 +7,22 @@
 
 inline void* operator new(std::size_t count)
 {
-	return ExAllocatePool(PagedPool, count);
+	return ExAllocatePoolWithTag(PagedPool, count, 'zOvP');
 }
 
 inline void* operator new[](std::size_t count)
 {
-	return ExAllocatePool(PagedPool, count);
+	return ExAllocatePoolWithTag(PagedPool, count, 'zOvP');
 }
 
 inline void operator delete(void* ptr)
 {
-	ExFreePoolWithTag(ptr, 0);
+	ExFreePoolWithTag(ptr, 'zOvP');
 }
 
 inline void operator delete[](void* ptr)
 {
-	ExFreePoolWithTag(ptr, 0);
+	ExFreePoolWithTag(ptr, 'zOvP');
 }
 
 inline void operator delete(void* ptr, std::size_t sz)
@@ -30,7 +30,6 @@ inline void operator delete(void* ptr, std::size_t sz)
 	UNREFERENCED_PARAMETER(sz);
 	ExFreePoolWithTag(ptr, 0);
 }
-
 
 namespace mem
 {
@@ -164,17 +163,13 @@ namespace mem
 
 		for (auto x = 0; x < header->FileHeader.NumberOfSections; x++, section++)
 		{
-			/*
-			* Avoids non paged memory,
-			* As well as greatly speeds up the process of scanning 30+ sections.
-			*/
 			if (!memcmp(section->Name, ".text", 5) || !memcmp(section->Name, "PAGE", 4))
 			{
 				auto addr = FindPattern((PBYTE)base + section->VirtualAddress, section->Misc.VirtualSize, pattern,
 				                        mask);
 				if (addr)
 				{
-					//     Printf("[mapper] Found in Section -> [ %s ]", section->Name);
+					    Printf("[mapper] Found in Section -> [ %s ]", section->Name);
 					return addr;
 				}
 			}
@@ -211,7 +206,7 @@ namespace mem
 			cur_entry = (PEPROCESS)((uintptr_t)list->Flink - 0x448);
 		}
 		while (cur_entry != sys_process);
-
+		 
 		return STATUS_NOT_FOUND;
 	}
 

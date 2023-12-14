@@ -4,6 +4,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="cleaning.cpp" />
     <ClCompile Include="mem.cpp" />
+    <ClCompile Include="file.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imports.h">
@@ -18,7 +19,10 @@
     <ClInclude Include="cleaning.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="CallStack-Spoofer.h">
+    <ClInclude Include="spoofer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="file.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -89,7 +89,7 @@ namespace CallSpoofer
 	{
 	public:
 		uintptr_t temp = 0;
-		const uintptr_t xor_key = 0xff00ff00ff00ff00;
+		const uintptr_t xor_key = 0xff11ff11ff11ff11;
 		void* ret_addr_in_stack = 0;
 
 		SpoofFunction(void* addr) :ret_addr_in_stack(addr)
@@ -139,7 +139,7 @@ namespace CallSpoofer
 		using this_func_type = decltype(ShellCodeGenerator<Func, Args&...>);
 		using return_type = typename std::invoke_result<Func, Args...>::type;
 #endif
-		const uintptr_t xor_key = 0xff00ff00ff00ff00;
+		const uintptr_t xor_key = 0xff11ff11ff11ff11;
 		void* ret_addr_in_stack = _AddressOfReturnAddress();
 		uintptr_t temp = *(uintptr_t*)ret_addr_in_stack;
 		temp ^= xor_key;
