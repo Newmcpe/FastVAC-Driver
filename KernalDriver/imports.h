@@ -79,6 +79,7 @@ typedef struct _PEB
 	PVOID ApiSetMap;
 } PEB, * PPEB;
 
+
 typedef struct _INFORMATION
 {
 	int operation;
@@ -88,6 +89,12 @@ typedef struct _INFORMATION
 	ULONG64 client_base;
 } INFORMATION, * PINFORMATION;
 
+
+typedef struct _CommunicationDTO
+{
+	INFORMATION request;
+	_int64 mode;	
+} CommunicationDTO, *PCommunicationDTO;
 
 typedef struct _HANDLE_TABLE_ENTRY_INFO
 {

@@ -1,4 +1,3 @@
-#include <thread>
 
 #include "mem.h"
 #include "spoofer.h"
@@ -6,10 +5,8 @@
 #include "file.h"
 #include "skCrypter.h"
 
-typedef INT64(__fastcall* fQword)(PVOID);
-fQword original_qword;
-
-#define PROCESS_NAME skCrypt(R"(cs2.exe)")
+#define PROCESS_NAME skCrypt(R"(r5apex.exe)")
+#define COMMUNICATION_FILE_NAME skCrypt(LR"(\DosDevices\C:\Users\Newmcpe\Desktop\mrpenis.log.txt)")
 
 auto readvm(PINFORMATION in) -> bool
 {
@@ -32,7 +29,7 @@ auto readvm(PINFORMATION in) -> bool
 
 auto get_client_address(PINFORMATION in)
 {
-	//	SPOOF_FUNC
+	////	SPOOF_FUNC
 	PEPROCESS source_process = nullptr;
 	NTSTATUS status = mem::FindProcessByName(PROCESS_NAME, &source_process);
 	if (status != STATUS_SUCCESS) return false;
@@ -41,64 +38,104 @@ auto get_client_address(PINFORMATION in)
 	size_t memsize = 0;
 	mem::get_module_base(source_process, PROCESS_NAME, &base_address, memsize);
 
-	in->client_base = base_address;
-
+	in->client_base = RtlRandomEx(reinterpret_cast<PULONG>(in));
 
 	return true;
 }
 
-INT64 __fastcall NtUserGetPointerProprietaryId_hk(PVOID a1)
+VOID Communication()
 {
-	//	SPOOF_FUNC
 
-	if (!a1 || ExGetPreviousMode() != UserMode || !static_cast<PINFORMATION>(a1)->operation) return original_qword(a1);
+	HANDLE hFile = NULL;
+	NTSTATUS status;
+	IO_STATUS_BLOCK sb;
+	UNICODE_STRING unFilePathName;
+	OBJECT_ATTRIBUTES object_attr;
+	LARGE_INTEGER      byteOffset = RtlConvertLongToLargeInteger(0);
 
-	PINFORMATION information = static_cast<PINFORMATION>(a1);
+	RtlInitUnicodeString(&unFilePathName, COMMUNICATION_FILE_NAME);
+	InitializeObjectAttributes(&object_attr, &unFilePathName,
+		NULL,
+		NULL, NULL);
 
-	switch (information->operation)
+	status = ZwCreateFile(&hFile,
+		GENERIC_ALL,
+		&object_attr,
+		&sb,
+		NULL,
+		FILE_ATTRIBUTE_NORMAL,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		FILE_OPEN_IF,
+		FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_ALERT,
+		NULL,
+		0
+	);
+	Printf("ZwCreateFile %x\n", status);
+
+	CommunicationDTO inDto;
+
+	status = ZwReadFile(hFile, nullptr, nullptr, nullptr, &sb, &inDto, sizeof(CommunicationDTO), &byteOffset, nullptr);
+	Printf("ZwReadFile %x, mode = %i, requeust = %i\n", status, inDto.mode, inDto.request.operation);
+
+	if(inDto.mode == 2)
 	{
-	case READVM:
-	{
-		readvm(information);
+		Printf("Skipping...");
+		return;
 	}
-	case CLIENT_BASE:
-	{
-		get_client_address(information);
-	}
-	}
-	return 0;
+
+	get_client_address(&inDto.request);
+	inDto.mode = 2;
+
+	byteOffset = RtlConvertLongToLargeInteger(0);
+
+	status = ZwWriteFile(hFile, nullptr, nullptr, nullptr, &sb, &inDto, sizeof(CommunicationDTO),& byteOffset, nullptr);
+	Printf("ZwWriteFile %x, SB = %x\n", status, sb.Information);
+
+	RtlZeroMemory(&inDto, sizeof(CommunicationDTO));
+	ZwClose(hFile);
 }
 
-void DoFuckingWork()
+VOID CommunicationThread(PVOID Context)
 {
-	PEPROCESS gui_process;
-	mem::FindProcessByName(skCrypt(R"(explorer.exe)"), &gui_process);
-	if (!gui_process)return;
-	KeAttachProcess(gui_process);
+	UNREFERENCED_PARAMETER(Context);
 
-	auto win32k = mem::get_kernel_module(skCrypt(R"(\SystemRoot\System32\win32k.sys)"));
-	if (!win32k) return;
+	ULONG Counter = 0;
+	//PEPROCESS gameProcess;
+	//auto status = mem::FindProcessByName(PROCESS_NAME, &gameProcess);
 
-	uintptr_t dataPtr = win32k + 0x5824;
-	dataPtr = reinterpret_cast<uintptr_t>(RVA(dataPtr, 7));
 
-	if (!dataPtr) return;
+	while (1)
+	{
 
-	Printf("dataPtr: 0x%x\n", dataPtr);
+	Communication();
+	}
 
-	original_qword = reinterpret_cast<fQword>(InterlockedExchangePointer(reinterpret_cast<PVOID*>(dataPtr),
-		reinterpret_cast<PVOID>(
-			NtUserGetPointerProprietaryId_hk)));
-
-	KeDetachProcess();
-	ObDereferenceObject(gui_process);
+	//Communication();
+	PsTerminateSystemThread(0);
 }
 
-typedef struct _REQUEST
+NTSTATUS CreateCommunicationThread()
 {
-	int test1;
-	int test2;
-} TESTREQUEST, * PTESTREQUEST;
+	HANDLE hThread = nullptr;
+
+	NTSTATUS Status = PsCreateSystemThread(
+		&hThread,
+		GENERIC_ALL,
+		nullptr,
+		nullptr,
+		nullptr,
+		CommunicationThread,
+		nullptr
+	);
+
+	if (!NT_SUCCESS(Status))
+	{
+		Printf("[!] Failed to start thread\n");
+		return NULL;
+	}
+
+	return STATUS_SUCCESS;
+}
 
 
 extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING RegistryPath)
@@ -108,46 +145,7 @@ extern "C" NTSTATUS CustomEntry(PDRIVER_OBJECT DriverObj, PUNICODE_STRING Regist
 
 	Printf("Driver Loaded %p\n", DriverObj);
 
-	const auto fileName = LR"(\DosDevices\C:\Users\WDKRemoteUser.newmcpe-virtual\Desktop\mrpenis.log.txt)";
-
-	HANDLE hFile = NULL;
-	NTSTATUS status;
-	IO_STATUS_BLOCK sb;
-	UNICODE_STRING unFilePathName;
-	OBJECT_ATTRIBUTES object_attr;
-	LARGE_INTEGER      byteOffset;
-
-	RtlInitUnicodeString(&unFilePathName, fileName);
-	InitializeObjectAttributes(&object_attr, &unFilePathName,
-		OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-		NULL, NULL);
-
-	status = ZwCreateFile(&hFile, GENERIC_WRITE, &object_attr, &sb, NULL, FILE_ATTRIBUTE_NORMAL, 0,
-		FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
-
-	Printf("ZwCreateFile %x\n", status);
-
-	TESTREQUEST outRequest = TESTREQUEST{
-
-	};
-
-	outRequest.test1 = 1337;
-	outRequest.test2 = 228;
-
-	status = ZwWriteFile(hFile, nullptr, nullptr, nullptr, &sb, &outRequest, sizeof(TESTREQUEST), nullptr, nullptr);
-	Printf("ZwWriteFile %x\n", status);
-
-	//char inBuffer[sizeof(TESTREQUEST)];
-	TESTREQUEST inRequest;
-	byteOffset.LowPart = byteOffset.HighPart = 0;
-	status = ZwReadFile(hFile, nullptr, nullptr, nullptr, &sb, &inRequest, sizeof(TESTREQUEST), &byteOffset, nullptr);
-//	memcpy(&inRequest, inBuffer, sizeof(TESTREQUEST));
-	Printf("ZwReadFile %x\n", status);
-
-	Printf("Value #1 %d\n", inRequest.test1);
-	Printf("Value #2 %d\n", inRequest.test2);
-
-	ZwClose(hFile);
+	Cleaning::CreateThreadSpoofed(CreateCommunicationThread);
 
 	return STATUS_SUCCESS;
 }

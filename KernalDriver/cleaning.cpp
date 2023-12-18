@@ -1,4 +1,4 @@
-ö#include "cleaning.h"
+#include "cleaning.h"
 #include "skCrypter.h"
 #include "ntddk.h";
 
